@@ -29,9 +29,14 @@ module.exports = {
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
       chainId: 59141,
     },
+    celoAlfajores: {
+      url: process.env.CELO_ALFAJORES_URL || "",
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      chainId: 44787,
+    },
   },
   paths: {
-    sources: "./content",
+    sources: "./contracts",
     tests: "./tests",
     cache: "./cache",
     artifacts: "./artifacts",
