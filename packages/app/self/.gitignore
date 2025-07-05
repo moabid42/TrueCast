@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
@@ -40,3 +41,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+=======
+node_modules/
+dist/
+coverage/
+.env
+>>>>>>> dc5702a8 (refacto: updated the project structure)
