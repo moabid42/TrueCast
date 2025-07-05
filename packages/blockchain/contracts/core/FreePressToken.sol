@@ -338,19 +338,18 @@ contract FreePressToken is ERC20, ERC20Pausable, ReentrancyGuard {
      * @dev Override _update to check for locked tokens and handle pausable
      * This replaces the old _beforeTokenTransfer in OpenZeppelin v5
      */
-    function _update(
+    function _beforeTokenTransfer(
         address from,
         address to,
         uint256 amount
-    ) internal override(ERC20, ERC20Pausable) {
-        // Check for locked tokens before transfer
+    ) internal override(ERC20Pausable, ERC20) {
         if (from != address(0) && amount > 0) {
             if (availableBalance(from) < amount) {
                 revert InsufficientUnlockedBalance(amount, availableBalance(from));
             }
         }
-        
-        // Call parent implementation (handles pausable)
-        super._update(from, to, amount);
+
+        super._beforeTokenTransfer(from, to, amount);
     }
+
 }

@@ -12,6 +12,7 @@
     "verify:sepolia": "hardhat verify --network alfajores",
     "deploy:lineasepolia": "hardhat run scripts/deploy_articleManager.js --network alfajores",
     "verify:lineasepolia": "hardhat verify --network alfajores",
+    "deploy": "hardhat run scripts/deploy.js --network alfajores",
     "node": "hardhat node",
     "console": "hardhat console",
     "clean": "hardhat clean",
@@ -47,6 +48,7 @@
   },
   "dependencies": {
     "@openzeppelin/contracts": "^4.9.5",
+    "@selfxyz/contracts": "^1.2.0",
     "dotenv": "^16.6.1"
   }
 }

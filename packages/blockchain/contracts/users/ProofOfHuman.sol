@@ -1,29 +1,27 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.24;
+pragma solidity ^0.8.28;
 
 import {SelfVerificationRoot} from "@selfxyz/contracts/contracts/abstract/SelfVerificationRoot.sol";
 import {ISelfVerificationRoot} from "@selfxyz/contracts/contracts/interfaces/ISelfVerificationRoot.sol";
 import {SelfStructs} from "@selfxyz/contracts/contracts/libraries/SelfStructs.sol";
-import {IUserRegistry} from "./IUserRegistery.sol";
-
-
+import {IUserRegistry} from "../interfaces/IUserRegistery.sol";
 
 /**
- * @title TestSelfVerificationRoot
- * @notice Test implementation of SelfVerificationRoot for testing purposes
- * @dev This contract provides a concrete implementation of the abstract SelfVerificationRoot
+ * @title ProofOfHuman
+ * @notice Implementation of SelfVerificationRoot for human verification
+ * @dev This contract verifies users through Self and registers them in UserRegistry
  */
 contract ProofOfHuman is SelfVerificationRoot {
-    // Storage for testing purposes
+    // Storage
     bool public verificationSuccessful;
     ISelfVerificationRoot.GenericDiscloseOutputV2 public lastOutput;
     bytes public lastUserData;
     SelfStructs.VerificationConfigV2 public verificationConfig;
     bytes32 public verificationConfigId;
     address public lastUserAddress;
-    address public userRegistryAddress = 0x907e9d06C4795cC4646DecD1090Aa25A7221D2FD; // Replace with actual User Registry address
+    address public userRegistryAddress;
 
-    // Events for testing
+    // Events
     event VerificationCompleted(
         ISelfVerificationRoot.GenericDiscloseOutputV2 output,
         bytes userData
@@ -33,20 +31,61 @@ contract ProofOfHuman is SelfVerificationRoot {
         string name,
         string dateOfBirth
     );
+    event UserRegistryUpdated(address indexed newUserRegistry);
+
+    // Errors
+    error InvalidAddress();
+    error OnlyOwner();
+
+    // Owner for setup
+    address public owner;
+
+    modifier onlyOwner() {
+        if (msg.sender != owner) revert OnlyOwner();
+        _;
+    }
 
     /**
-     * @notice Constructor for the test contract
+     * @notice Constructor for the ProofOfHuman contract
      * @param identityVerificationHubV2Address The address of the Identity Verification Hub V2
+     * @param scope The scope for verification
+     * @param _verificationConfigId The verification configuration ID
+     * @param _userRegistryAddress The address of the UserRegistry contract
      */
     constructor(
         address identityVerificationHubV2Address,
         uint256 scope,
-        bytes32 _verificationConfigId
+        bytes32 _verificationConfigId,
+        address _userRegistryAddress
     ) SelfVerificationRoot(identityVerificationHubV2Address, scope) {
+        if (_userRegistryAddress == address(0)) revert InvalidAddress();
+        
         verificationConfigId = _verificationConfigId;
+        userRegistryAddress = _userRegistryAddress;
+        owner = msg.sender;
+        
+        emit UserRegistryUpdated(_userRegistryAddress);
     }
+
     /**
-     * @notice Implementation of customVerificationHook for testing
+     * @notice Update the UserRegistry address if needed
+     * @param _userRegistryAddress The new UserRegistry address
+     */
+    function setUserRegistry(address _userRegistryAddress) external onlyOwner {
+        if (_userRegistryAddress == address(0)) revert InvalidAddress();
+        userRegistryAddress = _userRegistryAddress;
+        emit UserRegistryUpdated(_userRegistryAddress);
+    }
+
+    /**
+     * @notice Renounce ownership after setup
+     */
+    function renounceOwnership() external onlyOwner {
+        owner = address(0);
+    }
+
+    /**
+     * @notice Implementation of customVerificationHook
      * @dev This function is called by onVerificationSuccess after hub address validation
      * @param output The verification output from the hub
      * @param userData The user data passed through verification
@@ -60,9 +99,17 @@ contract ProofOfHuman is SelfVerificationRoot {
         lastUserData = userData;
         lastUserAddress = address(uint160(output.userIdentifier));
 
-        string memory fullName = string(abi.encodePacked(
-            output.name[0], " ", output.name[1], " ", output.name[2]
-        ));
+        string memory fullName = "";
+        uint256 nameLength = output.name.length;
+        for (uint256 i = 0; i < nameLength; i++) {
+            if (bytes(output.name[i]).length > 0) {
+                if (bytes(fullName).length == 0) {
+                    fullName = output.name[i];
+                } else {
+                    fullName = string(abi.encodePacked(fullName, " ", output.name[i]));
+                }
+            }
+        }
         
         // Register the user with their verified identity
         IUserRegistry(userRegistryAddress).registerVerifiedUser(
@@ -76,7 +123,8 @@ contract ProofOfHuman is SelfVerificationRoot {
         emit UserInfo(
             output.nationality,
             fullName,
-            output.dateOfBirth);
+            output.dateOfBirth
+        );
     }
 
     /**
@@ -112,7 +160,7 @@ contract ProofOfHuman is SelfVerificationRoot {
      * @notice Expose the internal _setScope function for testing
      * @param newScope The new scope value to set
      */
-    function setScope(uint256 newScope) external {
+    function setScope(uint256 newScope) external onlyOwner {
         _setScope(newScope);
     }
 
@@ -155,8 +203,3 @@ contract ProofOfHuman is SelfVerificationRoot {
         onVerificationSuccess(output, userData);
     }
 }
-
-//sound jealous define second lawn comfort crush approve host violin trash pioneer
-// Access: 0x3C8bA15856317AbCB1c5dC8C853bAf916105DC81
-// Token: 0x796b566DcDA2c908E796a4b1b7B420333a613054
-// User: 0x907e9d06C4795cC4646DecD1090Aa25A7221D2FD

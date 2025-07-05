@@ -3,15 +3,6 @@ pragma solidity ^0.8.24;
 
 interface IUserRegistry {
     // Structs
-    struct User {
-        bool isRegistered;
-        bool isJournalist;
-        uint256 registeredAt;
-        uint256 reputation;
-        string nationality;
-        string[] name;
-        string dateOfBirth;
-    }
 
     struct JournalistApplication {
         bool hasApplied;
@@ -31,7 +22,7 @@ interface IUserRegistry {
             uint256 registeredAt,
             uint256 reputation,
             string memory nationality,
-            string[] memory name,
+            string memory name,
             string memory dateOfBirth
         );
     function getJournalistApplication(address user)
@@ -48,9 +39,9 @@ interface IUserRegistry {
     function renounceOwnership() external;
     function registerVerifiedUser(
         address userAddress,
-        string memory _nationality,
-        string[] memory _name,
-        string memory _dateOfBirth
+        string calldata name,
+        string calldata nationality,
+        string calldata dateOfBirth
     ) external;
     function applyForJournalist(string calldata credentialsURI) external;
     function updateReputation(address user, int256 reputationChange) external;
