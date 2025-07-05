@@ -10,6 +10,8 @@
     "deploy:local": "hardhat run scripts/deploy.js --network localhost",
     "deploy:sepolia": "hardhat run scripts/deploy.js --network sepolia",
     "verify:sepolia": "hardhat verify --network sepolia",
+    "deploy:lineasepolia": "hardhat run scripts/deploy.js --network lineasepolia",
+    "verify:lineasepolia": "hardhat verify --network lineasepolia",
     "node": "hardhat node",
     "console": "hardhat console",
     "clean": "hardhat clean",
