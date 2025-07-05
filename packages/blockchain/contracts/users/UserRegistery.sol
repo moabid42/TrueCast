@@ -91,6 +91,11 @@ contract UserRegistry {
 
         isRegistered[userAddress] = true;
         isJournalist[userAddress] = false;
+        registeredAt[userAddress] = block.timestamp;
+        reputation[userAddress] = 100;
+        name[userAddress] = _name;
+        nationality[userAddress] = _nationality;
+        dateOfBirth[userAddress] = _dateOfBirth;
 
         totalUsers++;
 

@@ -94,10 +94,6 @@ contract ProofOfHuman is SelfVerificationRoot {
         ISelfVerificationRoot.GenericDiscloseOutputV2 memory output,
         bytes memory userData
     ) internal override {
-        verificationSuccessful = true;
-        lastOutput = output;
-        lastUserData = userData;
-        lastUserAddress = address(uint160(output.userIdentifier));
 
         string memory fullName = "";
         uint256 nameLength = output.name.length;
@@ -113,16 +109,9 @@ contract ProofOfHuman is SelfVerificationRoot {
         
         // Register the user with their verified identity
         IUserRegistry(userRegistryAddress).registerVerifiedUser(
-            lastUserAddress,
+            address(uint160(output.userIdentifier)),
             fullName,
             output.nationality,
-            output.dateOfBirth
-        );
-
-        emit VerificationCompleted(output, userData);
-        emit UserInfo(
-            output.nationality,
-            fullName,
             output.dateOfBirth
         );
     }
