@@ -25,8 +25,10 @@ contract UserRegistry {
         bool isJournalist;
         uint256 registeredAt;
         uint256 reputation;
+        string profileMetadataURI; // IPFS hash for profile data
+        // Self-verified identity data
+        string name;
         string nationality;
-        string[] name;
         string dateOfBirth;
     }
     
@@ -47,7 +49,13 @@ contract UserRegistry {
     uint256 public totalJournalists;
     
     // Events
-    event UserRegistered(address indexed user, uint256 timestamp);
+    event UserRegistered(
+        address indexed user, 
+        uint256 timestamp,
+        string name,
+        string nationality,
+        string dateOfBirth
+    );
     event JournalistVerified(address indexed journalist, string credentialsURI);
     event ProfileUpdated(address indexed user, string newMetadataURI);
     event ReputationUpdated(address indexed user, int256 change, uint256 newReputation);
@@ -110,20 +118,29 @@ contract UserRegistry {
     /**
      * @dev Register a new user after successful Self verification
      * @param userAddress The address of the verified user
+     * @param name The verified name from Self (concatenated if array)
+     * @param nationality The verified nationality
+     * @param dateOfBirth The verified date of birth
      * @notice This function is called by the Self verification contract
      */
-    function registerVerifiedUser(address userAddress, string memory _nationality, string[] memory _name, string memory _dateOfBirth) external onlySelfVerification {
+    function registerVerifiedUser(
+        address userAddress,
+        string calldata name,
+        string calldata nationality,
+        string calldata dateOfBirth
+    ) external onlySelfVerification {
         if (users[userAddress].isRegistered) revert AlreadyRegistered();
         
-        // Register the user
+        // Register the user with Self-verified data
         users[userAddress] = User({
             isRegistered: true,
             isJournalist: false,
             registeredAt: block.timestamp,
             reputation: 100, // Starting reputation
-            nationality: _nationality,
-            name: _name,
-            dateOfBirth: _dateOfBirth
+            profileMetadataURI: "",
+            name: name,
+            nationality: nationality,
+            dateOfBirth: dateOfBirth
         });
         
         totalUsers++;
@@ -134,7 +151,7 @@ contract UserRegistry {
         // Claim initial tokens for the user
         freePressToken.claimInitialTokens(userAddress, false);
         
-        emit UserRegistered(userAddress, block.timestamp);
+        emit UserRegistered(userAddress, block.timestamp, name, nationality, dateOfBirth);
     }
     
     /**
@@ -176,6 +193,18 @@ contract UserRegistry {
         freePressToken.claimInitialTokens(journalist, true);
         
         emit JournalistVerified(journalist, application.credentialsURI);
+    }
+    
+    /**
+     * @dev Update user profile metadata
+     * @param metadataURI IPFS hash for profile data
+     */
+    function updateProfile(string calldata metadataURI) external {
+        if (!users[msg.sender].isRegistered) revert NotRegistered();
+        if (bytes(metadataURI).length == 0) revert InvalidURI();
+        
+        users[msg.sender].profileMetadataURI = metadataURI;
+        emit ProfileUpdated(msg.sender, metadataURI);
     }
     
     /**
@@ -225,8 +254,9 @@ contract UserRegistry {
         bool isJournalist,
         uint256 registeredAt,
         uint256 reputation,
+        string memory profileMetadataURI,
+        string memory name,
         string memory nationality,
-        string[] memory  name,
         string memory dateOfBirth
     ) {
         User memory userInfo = users[user];
@@ -235,8 +265,9 @@ contract UserRegistry {
             userInfo.isJournalist,
             userInfo.registeredAt,
             userInfo.reputation,
-            userInfo.nationality,
+            userInfo.profileMetadataURI,
             userInfo.name,
+            userInfo.nationality,
             userInfo.dateOfBirth
         );
     }
@@ -251,5 +282,18 @@ contract UserRegistry {
     ) {
         JournalistApplication memory app = journalistApplications[user];
         return (app.hasApplied, app.credentialsURI, app.appliedAt);
+    }
+    
+    /**
+     * @dev Get user's verified identity data
+     */
+    function getUserIdentity(address user) external view returns (
+        string memory name,
+        string memory nationality,
+        string memory dateOfBirth
+    ) {
+        User memory userInfo = users[user];
+        require(userInfo.isRegistered, "User not registered");
+        return (userInfo.name, userInfo.nationality, userInfo.dateOfBirth);
     }
 }
