@@ -19,7 +19,7 @@ export default function Home() {
   const [toastMessage, setToastMessage] = useState("");
   const [selfApp, setSelfApp] = useState<SelfApp | null>(null);
   const [universalLink, setUniversalLink] = useState("");
-  const [userId, setUserId] = useState(ethers.ZeroAddress);
+  const [userId, setUserId] = useState("0xC5B0313400F9328A770C95787772FC0910C6da1c");
   // Use useMemo to cache the array to avoid creating a new array on each render
   const excludedCountries = useMemo(() => [countries.NORTH_KOREA], []);
 

@@ -21,11 +21,6 @@
       "@/*": ["./src/*"]
     }
   },
-<<<<<<< HEAD
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
   "exclude": ["node_modules"]
-=======
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", "walrusapp/.next/types/**/*.ts"],
-  "exclude": ["walrusapp/node_modules"]
->>>>>>> dc5702a8 (refacto: updated the project structure)
 }

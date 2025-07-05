@@ -11,13 +11,13 @@ async function main() {
         process.exit(1);
     }
 
-    const contractAddress = "0xD74EF78261456641E2A0498bee9A13a681f953e8";
+    const contractAddress = "0x177f725DC00514d37682D6Bde5898b00f1E001c2";
 
     console.log("Using contract at:", contractAddress);
     console.log("Network:", hre.network.name);
 
     // Get the new scope value from environment variable
-    const newScope = "5813127803098974813981721690532370095950592647664761470569025495427011955577";
+    const newScope = "7746369058028895858495821809131269232267228660636721413427176560440004991555";
 
     if (!newScope) {
         console.error("Please provide the new scope value:");

@@ -38,8 +38,4 @@
   "engines": {
     "node": "20.x"
   }
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> dc5702a8 (refacto: updated the project structure)
