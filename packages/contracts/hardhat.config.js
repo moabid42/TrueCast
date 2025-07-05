@@ -24,6 +24,11 @@ module.exports = {
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
       chainId: 11155111,
     },
+    lineasepolia: {
+      url: process.env.LINEA_SEPOLIA_URL || "",
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      chainId: 59141,
+    },
   },
   paths: {
     sources: "./content",
@@ -37,5 +42,15 @@ module.exports = {
   },
   etherscan: {
     apiKey: process.env.ETHERSCAN_API_KEY,
+    customChains: [
+      {
+        network: "lineasepolia",
+        chainId: 59141,
+        urls: {
+          apiURL: "https://api-sepolia.lineascan.build/api",
+          browserURL: "https://sepolia.lineascan.build"
+        }
+      }
+    ]
   },
 };
