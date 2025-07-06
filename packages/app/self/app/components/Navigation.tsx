@@ -11,6 +11,8 @@ export default function Navigation() {
   const [isJournalist, setIsJournalist] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
+
+
   // Check admin and journalist status
   useEffect(() => {
     const checkStatus = async () => {
@@ -85,17 +87,17 @@ export default function Navigation() {
     checkStatus();
   }, [account]);
 
+
+
   return (
-    <nav className="bg-white shadow-lg border-b border-gray-100">
+    <nav className="bg-white shadow-lg border-b border-gray-100" style={{ background: 'var(--background)' }}>
       <div className="max-w-6xl mx-auto px-4">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-              <span className="text-white text-sm font-bold">TC</span>
-            </div>
-            <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              TrueCase
+            <img src="/logo1-removebg-preview.png" alt="TrueCast Logo" className="w-10 h-10 object-contain" />
+            <span className="text-xl font-bold bg-gradient-to-r from-[var(--primary-dark)] to-[var(--primary)] bg-clip-text text-transparent">
+              TrueCast
             </span>
           </Link>
 
@@ -178,7 +180,7 @@ export default function Navigation() {
             ) : (
               <button
                 onClick={connectWallet}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 transform hover:scale-105"
+                className="bg-gradient-to-r from-[var(--primary-dark)] to-[var(--primary)] hover:from-[var(--primary)] hover:to-[var(--primary-dark)] text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 shadow-md"
               >
                 Connect Wallet
               </button>

@@ -98,10 +98,10 @@ export default function VerifyPage() {
     }
   };
 
-  // Check if user is already verified and redirect to articles
+  // Check if user is already verified and redirect to feed
   useEffect(() => {
     if (account && authVerified) {
-      router.push('/articles');
+      router.push('/feed');
     }
   }, [account, authVerified, router]);
 
@@ -181,12 +181,12 @@ export default function VerifyPage() {
   };
 
   const handleSuccessfulVerification = () => {
-    displayToast("Verification successful! Redirecting to articles...", "success");
+    displayToast("Verification successful! Redirecting to feed...", "success");
     
-    console.log("Redirecting to articles...");
-    // Redirect to articles after successful verification
+    console.log("Redirecting to feed...");
+    // Redirect to feed after successful verification
     setTimeout(() => {
-      router.push('/articles');
+      router.push('/feed');
     }, 2000);
   };
 

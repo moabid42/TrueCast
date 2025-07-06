@@ -3,6 +3,7 @@ import localFont from "next/font/local";
 import "./globals.css";
 import Navigation from "@/components/Navigation";
 import { AuthProvider } from "@/contexts/AuthContext";
+import RouteProtection from "@/components/RouteProtection";
 
 const geistSans = localFont({
 	src: "./fonts/GeistVF.woff",
@@ -31,12 +32,14 @@ export default function RootLayout({
 				className={`${geistSans.variable} ${geistMono.variable} antialiased`}
 			>
 				<AuthProvider>
-					<div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-						<Navigation />
-						<main className="container mx-auto px-4 py-8">
-							{children}
-						</main>
-					</div>
+					<RouteProtection>
+						<div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+							<Navigation />
+							<main className="container mx-auto px-4 py-8">
+								{children}
+							</main>
+						</div>
+					</RouteProtection>
 				</AuthProvider>
 			</body>
 		</html>

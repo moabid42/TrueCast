@@ -66,8 +66,24 @@ async function main() {
     deployedContracts.proofOfHuman = await proofOfHuman.getAddress();
     console.log("   ✓ ProofOfHuman deployed to:", deployedContracts.proofOfHuman);
 
-    // 5. Configure contracts
-    console.log("\n5. Configuring contracts...");
+    // 5. Deploy ArticleManager
+    console.log("\n5. Deploying ArticleManager...");
+    const ArticleManager = await hre.ethers.getContractFactory("ArticleManager");
+    const articleManager = await ArticleManager.deploy(deployer.address); // Use deployer as staking manager
+    await articleManager.waitForDeployment();
+    deployedContracts.articleManager = await articleManager.getAddress();
+    console.log("   ✓ ArticleManager deployed to:", deployedContracts.articleManager);
+
+    // 6. Deploy JournalistApplication
+    console.log("\n6. Deploying JournalistApplication...");
+    const JournalistApplication = await hre.ethers.getContractFactory("JournalistApplication");
+    const journalistApplication = await JournalistApplication.deploy();
+    await journalistApplication.waitForDeployment();
+    deployedContracts.journalistApplication = await journalistApplication.getAddress();
+    console.log("   ✓ JournalistApplication deployed to:", deployedContracts.journalistApplication);
+
+    // 7. Configure contracts
+    console.log("\n7. Configuring contracts...");
 
     // Authorize contracts in FreePressToken
     console.log("   - Authorizing contracts in FreePressToken...");
@@ -75,11 +91,19 @@ async function main() {
     await tx1.wait();
     console.log("     ✓ UserRegistry authorized");
 
+    const tx1b = await freePressToken.authorizeContract(deployedContracts.articleManager);
+    await tx1b.wait();
+    console.log("     ✓ ArticleManager authorized");
+
     // Authorize contracts in AccessManager
     console.log("   - Authorizing contracts in AccessManager...");
     const tx2 = await accessManager.authorizeContract(deployedContracts.userRegistry);
     await tx2.wait();
     console.log("     ✓ UserRegistry authorized");
+
+    const tx2b = await accessManager.authorizeContract(deployedContracts.articleManager);
+    await tx2b.wait();
+    console.log("     ✓ ArticleManager authorized");
 
     // Set Self verification contract in UserRegistry
     console.log("   - Setting Self verification contract in UserRegistry...");
@@ -98,7 +122,9 @@ async function main() {
         freePressToken: deployedContracts.freePressToken,
         accessManager: deployedContracts.accessManager,
         userRegistry: deployedContracts.userRegistry,
-        proofOfHuman: deployedContracts.proofOfHuman
+        proofOfHuman: deployedContracts.proofOfHuman,
+        articleManager: deployedContracts.articleManager,
+        journalistApplication: deployedContracts.journalistApplication
       },
       configuration: {
         hubAddress: hubAddress,
@@ -127,7 +153,49 @@ async function main() {
 
     console.log("   ✓ Deployment info saved to ./deployments/latest.json");
 
-    // 9. Display summary
+    // Update .env file for the frontend
+    console.log("\n9. Updating .env file for frontend...");
+    const path = require("path");
+    const envPath = path.join(__dirname, "../../app/self/.env");
+    
+    // Read existing .env file
+    let envContent = "";
+    if (fs.existsSync(envPath)) {
+      envContent = fs.readFileSync(envPath, 'utf8');
+      console.log("   ✓ Found existing .env file");
+    } else {
+      console.log("   ⚠️  No existing .env file found, creating new one");
+    }
+
+    // Update contract addresses in the .env content
+    const addressUpdates = {
+      'NEXT_PUBLIC_FREE_PRESS_TOKEN_ADDRESS': deployedContracts.freePressToken,
+      'NEXT_PUBLIC_ACCESS_MANAGER_ADDRESS': deployedContracts.accessManager,
+      'NEXT_PUBLIC_USER_REGISTRY_ADDRESS': deployedContracts.userRegistry,
+      'NEXT_PUBLIC_PROOF_OF_HUMAN_ADDRESS': deployedContracts.proofOfHuman,
+      'NEXT_PUBLIC_ARTICLE_MANAGER_ADDRESS': deployedContracts.articleManager,
+      'NEXT_PUBLIC_JOURNALIST_APPLICATION_CONTRACT': deployedContracts.journalistApplication,
+      'NEXT_PUBLIC_SELF_ENDPOINT': deployedContracts.proofOfHuman
+    };
+
+    // Update each address in the .env content
+    Object.entries(addressUpdates).forEach(([key, value]) => {
+      const regex = new RegExp(`^${key}=.*$`, 'm');
+      if (envContent.match(regex)) {
+        envContent = envContent.replace(regex, `${key}=${value}`);
+        console.log(`   ✓ Updated ${key}`);
+      } else {
+        // If the key doesn't exist, add it
+        envContent += `\n${key}=${value}`;
+        console.log(`   ✓ Added ${key}`);
+      }
+    });
+
+    // Write updated .env file
+    fs.writeFileSync(envPath, envContent);
+    console.log("   ✓ .env file updated at app/self/.env");
+
+    // 10. Display summary
     console.log("\n========================================");
     console.log("DEPLOYMENT COMPLETE!");
     console.log("========================================");
@@ -136,14 +204,14 @@ async function main() {
     console.log("- AccessManager:", deployedContracts.accessManager);
     console.log("- UserRegistry:", deployedContracts.userRegistry);
     console.log("- ProofOfHuman:", deployedContracts.proofOfHuman);
+    console.log("- ArticleManager:", deployedContracts.articleManager);
+    console.log("- JournalistApplication:", deployedContracts.journalistApplication);
     
     console.log("\n⚠️  IMPORTANT NEXT STEPS:");
-    console.log("1. Update NEXT_PUBLIC_SELF_ENDPOINT in app/.env with ProofOfHuman address");
+    console.log("1. Update .env file in app/self/ with all contract addresses");
     console.log("2. Go to https://tools.self.xyz to generate the correct scope");
     console.log("3. Call proofOfHuman.setScope(newScope) with the generated scope");
-    console.log("4. Deploy remaining contracts (ArticleManager, FactVoting, etc.)");
-    console.log("5. Authorize remaining contracts in FreePressToken and AccessManager");
-    console.log("6. When ready for production, renounce ownerships for decentralization");
+    console.log("4. When ready for production, renounce ownerships for decentralization");
 
   } catch (error) {
     console.error("\n❌ Deployment failed:", error);

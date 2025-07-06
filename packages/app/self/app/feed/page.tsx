@@ -49,6 +49,8 @@ export default function FeedPage() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(false);
   const [wrongNetwork, setWrongNetwork] = useState(false);
+  const [isJournalist, setIsJournalist] = useState(false);
+  const [isLoadingJournalist, setIsLoadingJournalist] = useState(true);
 
   const statusLabels = {
     0: 'Draft',
@@ -62,6 +64,52 @@ export default function FeedPage() {
     1: 'bg-yellow-100 text-yellow-800',
     2: 'bg-green-100 text-green-800',
     3: 'bg-red-100 text-red-800'
+  };
+
+  // Check journalist status
+  const checkJournalistStatus = async () => {
+    if (!account) {
+      setIsLoadingJournalist(false);
+      return;
+    }
+
+    try {
+      if (typeof window !== 'undefined' && window.ethereum) {
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const contract = new ethers.Contract(
+          process.env.NEXT_PUBLIC_JOURNALIST_APPLICATION_CONTRACT!,
+          [
+            {
+              "inputs": [
+                {
+                  "internalType": "address",
+                  "name": "user",
+                  "type": "address"
+                }
+              ],
+              "name": "isJournalist",
+              "outputs": [
+                {
+                  "internalType": "bool",
+                  "name": "",
+                  "type": "bool"
+                }
+              ],
+              "stateMutability": "view",
+              "type": "function"
+            }
+          ],
+          provider
+        );
+
+        const status = await contract.isJournalist(account);
+        setIsJournalist(status);
+      }
+    } catch (error) {
+      console.error('Error checking journalist status:', error);
+    } finally {
+      setIsLoadingJournalist(false);
+    }
   };
 
   // Initialize Web3 connection
@@ -263,6 +311,11 @@ export default function FeedPage() {
     // TODO: Implement actual voting on blockchain
     console.log(`Voted ${vote} on article ${articleId}`);
   };
+
+  // Check journalist status when account changes
+  useEffect(() => {
+    checkJournalistStatus();
+  }, [account]);
 
   // Check network
   useEffect(() => {
@@ -715,12 +768,24 @@ export default function FeedPage() {
             </svg>
             <h3 className="text-lg font-medium text-gray-900 mb-2">No articles found</h3>
             <p className="text-gray-600">Be the first to create an article!</p>
-            <button
-              onClick={() => router.push('/articles')}
-              className="mt-4 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-medium transition-colors"
-            >
-              Create Article
-            </button>
+            {isJournalist ? (
+              <button
+                onClick={() => router.push('/articles')}
+                className="mt-4 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+              >
+                Create Article
+              </button>
+            ) : (
+              <div className="mt-4 text-center">
+                <p className="text-sm text-gray-600 mb-2">Only verified journalists can create articles</p>
+                <button
+                  onClick={() => router.push('/journalist-application')}
+                  className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                >
+                  Apply to Become a Journalist
+                </button>
+              </div>
+            )}
           </div>
         ) : (
           <>

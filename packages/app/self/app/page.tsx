@@ -1,39 +1,53 @@
+"use client";
+
 import React from 'react';
 import Link from 'next/link';
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Home() {
+  const { account, isVerified } = useAuth();
   return (
     <div className="max-w-6xl mx-auto">
       {/* Hero Section */}
       <div className="text-center mb-16">
         <div className="mb-8">
-          <div className="w-24 h-24 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full mx-auto mb-6 flex items-center justify-center">
-            <span className="text-white text-3xl font-bold">TC</span>
-          </div>
+          <img src="/logo1-removebg-preview.png" alt="TrueCast Logo" className="mx-auto mb-6" style={{ maxWidth: '120px', height: 'auto' }} />
         </div>
-        <h1 className="text-5xl sm:text-6xl font-bold mb-6 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-          TrueCase
+        <h1 className="text-5xl sm:text-6xl font-bold mb-6 bg-gradient-to-r from-[var(--primary-dark)] to-[var(--primary)] bg-clip-text text-transparent">
+          TrueCast
         </h1>
         <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
           A decentralized news platform that combines identity verification with blockchain technology 
-          to ensure trustworthy, fact-checked journalism and combat misinformation.
+          to ensure trustworthy, fact-checked journalism and combat misinformation. Welcome to TrueCast.
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Link
             href="/feed"
-            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-4 rounded-lg text-lg font-semibold transition-all duration-200 transform hover:scale-105 inline-flex items-center justify-center"
+            className="bg-gradient-to-r from-[var(--primary-dark)] to-[var(--primary)] hover:from-[var(--primary)] hover:to-[var(--primary-dark)] text-white px-8 py-4 rounded-lg text-lg font-semibold transition-all duration-200 transform hover:scale-105 inline-flex items-center justify-center shadow-md"
           >
             Browse Feed
             <svg className="ml-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
             </svg>
           </Link>
-          <Link
-            href="/verify"
-            className="border-2 border-gray-300 hover:border-blue-600 text-gray-700 hover:text-blue-600 px-8 py-4 rounded-lg text-lg font-semibold transition-all duration-200 inline-flex items-center justify-center"
-          >
-            Get Started
-          </Link>
+          {!isVerified ? (
+            <Link
+              href="/verify"
+              className="border-2 border-gray-300 hover:border-blue-600 text-gray-700 hover:text-blue-600 px-8 py-4 rounded-lg text-lg font-semibold transition-all duration-200 inline-flex items-center justify-center"
+            >
+              Get Started
+            </Link>
+          ) : (
+            <Link
+              href="/feed"
+              className="border-2 border-green-300 hover:border-green-600 text-green-700 hover:text-green-600 px-8 py-4 rounded-lg text-lg font-semibold transition-all duration-200 inline-flex items-center justify-center"
+            >
+              <svg className="mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Verified - Browse Feed
+            </Link>
+          )}
         </div>
       </div>
 
@@ -127,7 +141,7 @@ export default function Home() {
 
       {/* Benefits Section */}
       <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-100 mb-16">
-        <h2 className="text-3xl font-bold text-center mb-8 text-gray-800">Why Choose TrueCase?</h2>
+        <h2 className="text-3xl font-bold text-center mb-8 text-gray-800">Why Choose TrueCast?</h2>
         <div className="grid md:grid-cols-2 gap-8">
           <div className="space-y-4">
             <div className="flex items-start space-x-3">
@@ -182,19 +196,36 @@ export default function Home() {
 
       {/* CTA Section */}
       <div className="text-center bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 text-white">
-        <h2 className="text-3xl font-bold mb-4">Ready to Join the Future of News?</h2>
+        <h2 className="text-3xl font-bold mb-4">
+          {!isVerified ? 'Ready to Join the Future of News?' : 'Welcome to TrueCast!'}
+        </h2>
         <p className="text-xl mb-6 opacity-90">
-          Connect your wallet and start your journey towards trustworthy, decentralized journalism
+          {!isVerified 
+            ? 'Connect your wallet and start your journey towards trustworthy, decentralized journalism'
+            : 'You\'re verified and ready to explore trustworthy, decentralized journalism'
+          }
         </p>
-        <Link
-          href="/verify"
-          className="bg-white text-blue-600 hover:bg-gray-100 px-8 py-4 rounded-lg text-lg font-semibold transition-all duration-200 transform hover:scale-105 inline-flex items-center"
-        >
-          Get Started Now
-          <svg className="ml-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-          </svg>
-        </Link>
+        {!isVerified ? (
+          <Link
+            href="/verify"
+            className="bg-white text-blue-600 hover:bg-gray-100 px-8 py-4 rounded-lg text-lg font-semibold transition-all duration-200 transform hover:scale-105 inline-flex items-center"
+          >
+            Get Started Now
+            <svg className="ml-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+            </svg>
+          </Link>
+        ) : (
+          <Link
+            href="/feed"
+            className="bg-white text-green-600 hover:bg-gray-100 px-8 py-4 rounded-lg text-lg font-semibold transition-all duration-200 transform hover:scale-105 inline-flex items-center"
+          >
+            <svg className="mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Browse Verified Content
+          </Link>
+        )}
       </div>
     </div>
   );

@@ -3,8 +3,13 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f8fafc;
+  --foreground: #1a232a;
+  --primary: #6ec1e4;
+  --primary-dark: #1a232a;
+  --accent: #6ec1e4;
+  --gradient-main: linear-gradient(90deg, #1a232a 0%, #6ec1e4 100%);
+  --gradient-accent: linear-gradient(90deg, #6ec1e4 0%, #1a232a 100%);
 }
 
 /* Removed automatic dark mode - keeping light theme consistent */
@@ -12,7 +17,7 @@
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Geist', Arial, Helvetica, sans-serif;
 }
 
 @layer utilities {

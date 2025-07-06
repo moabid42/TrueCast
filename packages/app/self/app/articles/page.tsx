@@ -64,6 +64,8 @@ export default function ArticlesPage() {
   const [modalContent, setModalContent] = useState('');
   const [modalTitle, setModalTitle] = useState('');
   const [wrongNetwork, setWrongNetwork] = useState(false);
+  const [isJournalist, setIsJournalist] = useState(false);
+  const [isLoadingJournalist, setIsLoadingJournalist] = useState(true);
 
   const statusLabels = {
     0: 'Draft',
@@ -77,6 +79,52 @@ export default function ArticlesPage() {
     1: 'bg-yellow-100 text-yellow-800',
     2: 'bg-green-100 text-green-800',
     3: 'bg-red-100 text-red-800'
+  };
+
+  // Check journalist status
+  const checkJournalistStatus = async () => {
+    if (!account) {
+      setIsLoadingJournalist(false);
+      return;
+    }
+
+    try {
+      if (typeof window !== 'undefined' && window.ethereum) {
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const contract = new ethers.Contract(
+          process.env.NEXT_PUBLIC_JOURNALIST_APPLICATION_CONTRACT!,
+          [
+            {
+              "inputs": [
+                {
+                  "internalType": "address",
+                  "name": "user",
+                  "type": "address"
+                }
+              ],
+              "name": "isJournalist",
+              "outputs": [
+                {
+                  "internalType": "bool",
+                  "name": "",
+                  "type": "bool"
+                }
+              ],
+              "stateMutability": "view",
+              "type": "function"
+            }
+          ],
+          provider
+        );
+
+        const status = await contract.isJournalist(account);
+        setIsJournalist(status);
+      }
+    } catch (error) {
+      console.error('Error checking journalist status:', error);
+    } finally {
+      setIsLoadingJournalist(false);
+    }
   };
 
   // No verification required - articles are public
@@ -388,6 +436,11 @@ export default function ArticlesPage() {
     }
   };
 
+  // Check journalist status when account changes
+  useEffect(() => {
+    checkJournalistStatus();
+  }, [account]);
+
   // Check network and listen for changes
   useEffect(() => {
     const checkNetwork = async () => {
@@ -598,54 +651,60 @@ export default function ArticlesPage() {
                 </svg>
                 Browse Articles
               </button>
-              <button
-                onClick={() => setActiveTab('create')}
-                disabled={!isVerified}
-                className={`px-4 py-2 rounded font-medium ${activeTab === 'create'
-                    ? 'bg-blue-500 text-white'
-                    : isVerified 
-                      ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                      : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                  }`}
-                title={!isVerified ? 'Identity verification required to create articles' : ''}
-              >
-                <svg className="inline mr-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                Create Article
-              </button>
-              <button
-                onClick={() => setActiveTab('update')}
-                disabled={!isVerified}
-                className={`px-4 py-2 rounded font-medium ${activeTab === 'update'
-                    ? 'bg-blue-500 text-white'
-                    : isVerified 
-                      ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                      : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                  }`}
-                title={!isVerified ? 'Identity verification required to update articles' : ''}
-              >
-                <svg className="inline mr-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-                Update Article
-              </button>
-              <button
-                onClick={() => setActiveTab('media')}
-                disabled={!isVerified}
-                className={`px-4 py-2 rounded font-medium ${activeTab === 'media'
-                    ? 'bg-blue-500 text-white'
-                    : isVerified 
-                      ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                      : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                  }`}
-                title={!isVerified ? 'Identity verification required to attach media' : ''}
-              >
-                <svg className="inline mr-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              {isJournalist && (
+                <button
+                  onClick={() => setActiveTab('create')}
+                  disabled={!isVerified}
+                  className={`px-4 py-2 rounded font-medium ${activeTab === 'create'
+                      ? 'bg-blue-500 text-white'
+                      : isVerified 
+                        ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                        : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    }`}
+                  title={!isVerified ? 'Identity verification required to create articles' : ''}
+                >
+                  <svg className="inline mr-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Create Article
+                </button>
+              )}
+              {isJournalist && (
+                <button
+                  onClick={() => setActiveTab('update')}
+                  disabled={!isVerified}
+                  className={`px-4 py-2 rounded font-medium ${activeTab === 'update'
+                      ? 'bg-blue-500 text-white'
+                      : isVerified 
+                        ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                        : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    }`}
+                  title={!isVerified ? 'Identity verification required to update articles' : ''}
+                >
+                  <svg className="inline mr-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                  Update Article
+                </button>
+              )}
+              {isJournalist && (
+                <button
+                  onClick={() => setActiveTab('media')}
+                  disabled={!isVerified}
+                  className={`px-4 py-2 rounded font-medium ${activeTab === 'media'
+                      ? 'bg-blue-500 text-white'
+                      : isVerified 
+                        ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                        : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    }`}
+                  title={!isVerified ? 'Identity verification required to attach media' : ''}
+                >
+                  <svg className="inline mr-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                 </svg>
                 Attach Media
               </button>
+              )}
             </div>
 
             {activeTab === 'browse' && (
@@ -673,7 +732,26 @@ export default function ArticlesPage() {
 
             {activeTab === 'create' && (
               <div className="space-y-4">
-                {!isVerified && (
+                {!isJournalist && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                    <div className="flex items-center">
+                      <svg className="w-5 h-5 text-red-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                      </svg>
+                      <div>
+                        <h3 className="text-sm font-medium text-red-800">Journalist Access Required</h3>
+                        <p className="text-sm text-red-700">Only verified journalists can create articles. Apply to become a journalist first.</p>
+                        <button
+                          onClick={() => router.push('/journalist-application')}
+                          className="mt-2 bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm font-medium transition-colors"
+                        >
+                          Apply to Become a Journalist
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {isJournalist && !isVerified && (
                   <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
                     <div className="flex items-center">
                       <svg className="w-5 h-5 text-yellow-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -751,10 +829,10 @@ export default function ArticlesPage() {
                 </div>
                 <button
                   onClick={createArticle}
-                  disabled={loading || wrongNetwork || !isVerified}
-                  title={!isVerified ? 'Identity verification required' : wrongNetwork ? 'Please switch to the Alfajores testnet to enable this action.' : ''}
+                  disabled={loading || wrongNetwork || !isVerified || !isJournalist}
+                  title={!isJournalist ? 'Journalist access required' : !isVerified ? 'Identity verification required' : wrongNetwork ? 'Please switch to the Alfajores testnet to enable this action.' : ''}
                   className={`px-6 py-3 rounded-lg font-medium transition-colors ${
-                    isVerified 
+                    isJournalist && isVerified
                       ? 'bg-blue-500 hover:bg-blue-600 text-white disabled:opacity-50' 
                       : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   }`}
@@ -766,7 +844,26 @@ export default function ArticlesPage() {
 
             {activeTab === 'update' && (
               <div className="space-y-4">
-                {!isVerified && (
+                {!isJournalist && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                    <div className="flex items-center">
+                      <svg className="w-5 h-5 text-red-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                      </svg>
+                      <div>
+                        <h3 className="text-sm font-medium text-red-800">Journalist Access Required</h3>
+                        <p className="text-sm text-red-700">Only verified journalists can update articles. Apply to become a journalist first.</p>
+                        <button
+                          onClick={() => router.push('/journalist-application')}
+                          className="mt-2 bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm font-medium transition-colors"
+                        >
+                          Apply to Become a Journalist
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {isJournalist && !isVerified && (
                   <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
                     <div className="flex items-center">
                       <svg className="w-5 h-5 text-yellow-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -829,10 +926,10 @@ export default function ArticlesPage() {
                 </div>
                 <button
                   onClick={updateArticle}
-                  disabled={loading || wrongNetwork || !isVerified}
-                  title={!isVerified ? 'Identity verification required' : wrongNetwork ? 'Please switch to the Alfajores testnet to enable this action.' : ''}
+                  disabled={loading || wrongNetwork || !isVerified || !isJournalist}
+                  title={!isJournalist ? 'Journalist access required' : !isVerified ? 'Identity verification required' : wrongNetwork ? 'Please switch to the Alfajores testnet to enable this action.' : ''}
                   className={`px-6 py-3 rounded-lg font-medium transition-colors ${
-                    isVerified 
+                    isJournalist && isVerified
                       ? 'bg-orange-500 hover:bg-orange-600 text-white disabled:opacity-50' 
                       : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   }`}
@@ -844,7 +941,26 @@ export default function ArticlesPage() {
 
             {activeTab === 'media' && (
               <div className="space-y-4">
-                {!isVerified && (
+                {!isJournalist && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                    <div className="flex items-center">
+                      <svg className="w-5 h-5 text-red-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                      </svg>
+                      <div>
+                        <h3 className="text-sm font-medium text-red-800">Journalist Access Required</h3>
+                        <p className="text-sm text-red-700">Only verified journalists can attach media. Apply to become a journalist first.</p>
+                        <button
+                          onClick={() => router.push('/journalist-application')}
+                          className="mt-2 bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm font-medium transition-colors"
+                        >
+                          Apply to Become a Journalist
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {isJournalist && !isVerified && (
                   <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
                     <div className="flex items-center">
                       <svg className="w-5 h-5 text-yellow-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -912,10 +1028,10 @@ export default function ArticlesPage() {
                 </div>
                 <button
                   onClick={attachMedia}
-                  disabled={loading || wrongNetwork || !isVerified || !formData.articleId || !formData.mediaHash}
-                  title={!isVerified ? 'Identity verification required' : wrongNetwork ? 'Please switch to the Alfajores testnet to enable this action.' : !formData.articleId || !formData.mediaHash ? 'Please provide article ID and upload a media file' : ''}
+                  disabled={loading || wrongNetwork || !isVerified || !isJournalist || !formData.articleId || !formData.mediaHash}
+                  title={!isJournalist ? 'Journalist access required' : !isVerified ? 'Identity verification required' : wrongNetwork ? 'Please switch to the Alfajores testnet to enable this action.' : !formData.articleId || !formData.mediaHash ? 'Please provide article ID and upload a media file' : ''}
                   className={`px-6 py-3 rounded-lg font-medium transition-colors ${
-                    isVerified && formData.articleId && formData.mediaHash
+                    isJournalist && isVerified && formData.articleId && formData.mediaHash
                       ? 'bg-green-500 hover:bg-green-600 text-white disabled:opacity-50' 
                       : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   }`}
