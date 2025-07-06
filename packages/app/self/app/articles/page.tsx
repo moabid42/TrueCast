@@ -7,7 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import ArticleManagerArtifact from '../../../walnus/ArticleManager.json';
 
 // ArticleManager contract details
-const ARTICLE_MANAGER_ADDRESS = '0xD2E9ad1A29cF863E0Ec43362CAAd6a04565dB1d3';
+const ARTICLE_MANAGER_ADDRESS = process.env.NEXT_PUBLIC_ARTICLE_MANAGER_ADDRESS || '';
 const ARTICLE_MANAGER_ABI = ArticleManagerArtifact.abi;
 
 // Walrus Protocol endpoints
@@ -334,12 +334,12 @@ export default function ArticlesPage() {
   useEffect(() => {
     const checkNetwork = async () => {
       if (window.ethereum) {
-        try {
-          const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-          setWrongNetwork(chainId !== '44787'); // 0xaa36a7 is 11155111 in hex (Sepolia)
-        } catch (e) {
-          setWrongNetwork(true);
-        }
+                  try {
+            const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+            setWrongNetwork(chainId !== '0xaef3'); // 0xaef3 is 44787 in hex (Alfajores)
+          } catch (e) {
+            setWrongNetwork(true);
+          }
       }
     };
     checkNetwork();
@@ -465,7 +465,7 @@ export default function ArticlesPage() {
     <div className="max-w-6xl mx-auto">
       {wrongNetwork && (
         <div className="w-full bg-red-700 text-white text-center py-3 font-bold z-50 mb-6 rounded-lg">
-          ⚠️ Please switch your wallet to the Sepolia testnet to use this app.
+          ⚠️ Please switch your wallet to the Alfajores testnet to use this app.
         </div>
       )}
       
@@ -565,7 +565,7 @@ export default function ArticlesPage() {
                   <button
                     onClick={loadArticles}
                     disabled={loading || wrongNetwork}
-                    title={wrongNetwork ? 'Please switch to the Sepolia testnet to enable this action.' : ''}
+                    title={wrongNetwork ? 'Please switch to the Alfajores testnet to enable this action.' : ''}
                     className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded disabled:opacity-50"
                   >
                     {loading ? 'Loading...' : 'Load All Articles'}
@@ -573,7 +573,7 @@ export default function ArticlesPage() {
                   <button
                     onClick={getMyArticles}
                     disabled={loading || wrongNetwork}
-                    title={wrongNetwork ? 'Please switch to the Sepolia testnet to enable this action.' : ''}
+                    title={wrongNetwork ? 'Please switch to the Alfajores testnet to enable this action.' : ''}
                     className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded disabled:opacity-50"
                   >
                     {loading ? 'Loading...' : 'My Articles'}
@@ -652,7 +652,7 @@ export default function ArticlesPage() {
                 <button
                   onClick={createArticle}
                   disabled={loading || wrongNetwork || !isVerified}
-                  title={!isVerified ? 'Identity verification required' : wrongNetwork ? 'Please switch to the Sepolia testnet to enable this action.' : ''}
+                  title={!isVerified ? 'Identity verification required' : wrongNetwork ? 'Please switch to the Alfajores testnet to enable this action.' : ''}
                   className={`px-6 py-3 rounded-lg font-medium transition-colors ${
                     isVerified 
                       ? 'bg-blue-500 hover:bg-blue-600 text-white disabled:opacity-50' 
@@ -718,7 +718,7 @@ export default function ArticlesPage() {
                 <button
                   onClick={updateArticle}
                   disabled={loading || wrongNetwork || !isVerified}
-                  title={!isVerified ? 'Identity verification required' : wrongNetwork ? 'Please switch to the Sepolia testnet to enable this action.' : ''}
+                  title={!isVerified ? 'Identity verification required' : wrongNetwork ? 'Please switch to the Alfajores testnet to enable this action.' : ''}
                   className={`px-6 py-3 rounded-lg font-medium transition-colors ${
                     isVerified 
                       ? 'bg-orange-500 hover:bg-orange-600 text-white disabled:opacity-50' 
@@ -772,7 +772,7 @@ export default function ArticlesPage() {
                 <button
                   onClick={attachMedia}
                   disabled={loading || wrongNetwork || !isVerified}
-                  title={!isVerified ? 'Identity verification required' : wrongNetwork ? 'Please switch to the Sepolia testnet to enable this action.' : ''}
+                  title={!isVerified ? 'Identity verification required' : wrongNetwork ? 'Please switch to the Alfajores testnet to enable this action.' : ''}
                   className={`px-6 py-3 rounded-lg font-medium transition-colors ${
                     isVerified 
                       ? 'bg-green-500 hover:bg-green-600 text-white disabled:opacity-50' 

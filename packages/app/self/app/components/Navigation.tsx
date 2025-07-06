@@ -30,6 +30,12 @@ export default function Navigation() {
               Home
             </Link>
             <Link 
+              href="/feed" 
+              className="text-gray-700 hover:text-blue-600 transition-colors duration-200"
+            >
+              Feed
+            </Link>
+            <Link 
               href="/verify" 
               className="text-gray-700 hover:text-blue-600 transition-colors duration-200"
             >

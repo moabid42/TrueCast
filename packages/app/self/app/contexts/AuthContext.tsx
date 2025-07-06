@@ -4,25 +4,37 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { ethers } from 'ethers';
 
 // Contract addresses and ABIs
-const USER_REGISTRY_ADDRESS = "0xB6E3e75CE2C22527416278278266b14630581a4B";
+const USER_REGISTRY_ADDRESS = process.env.NEXT_PUBLIC_USER_REGISTRY_ADDRESS || '';
 const USER_REGISTRY_ABI = [
   "function isRegistered(address user) external view returns (bool)",
   "function getUserInfo(address user) external view returns (bool, bool, uint256, uint256, string, string, string)"
 ];
 
-const PROOF_OF_HUMAN_ADDRESS = "0xA9E2401B5d6F27Ae2357d9982cF51C133D80a844";
+const PROOF_OF_HUMAN_ADDRESS = process.env.NEXT_PUBLIC_PROOF_OF_HUMAN_ADDRESS || '';
 const PROOF_OF_HUMAN_ABI = [
   "function verificationSuccessful() external view returns (bool)",
   "function lastOutput() external view returns (tuple(bytes32 attestationId, uint256 userIdentifier, uint256 nullifier, uint256[4] forbiddenCountriesListPacked, string issuingState, string[] name, string idNumber, string nationality, string dateOfBirth, string gender, string expiryDate, uint256 olderThan, bool[3] ofac))",
   "function lastUserAddress() external view returns (address)"
 ];
 
+interface UserProfile {
+  isRegistered: boolean;
+  isJournalist: boolean;
+  registeredAt: number;
+  reputation: number;
+  name: string;
+  nationality: string;
+  dateOfBirth: string;
+}
+
 interface AuthContextType {
   account: string;
   isVerified: boolean;
   isLoading: boolean;
+  userProfile: UserProfile | null;
   connectWallet: () => Promise<void>;
   checkVerificationStatus: (userAddress: string) => Promise<void>;
+  getUserProfile: (userAddress: string) => Promise<UserProfile | null>;
   disconnect: () => void;
 }
 
@@ -44,6 +56,37 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [account, setAccount] = useState<string>('');
   const [isVerified, setIsVerified] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+
+  // Get user profile from UserRegistry contract
+  const getUserProfile = async (userAddress: string): Promise<UserProfile | null> => {
+    try {
+      if (typeof window !== 'undefined' && window.ethereum) {
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const userRegistryContract = new ethers.Contract(USER_REGISTRY_ADDRESS, USER_REGISTRY_ABI, provider);
+        
+        const userInfo = await userRegistryContract.getUserInfo(userAddress);
+        
+        const profile: UserProfile = {
+          isRegistered: userInfo[0],
+          isJournalist: userInfo[1],
+          registeredAt: Number(userInfo[2]),
+          reputation: Number(userInfo[3]),
+          name: userInfo[4],
+          nationality: userInfo[5],
+          dateOfBirth: userInfo[6]
+        };
+        
+        console.log("User profile retrieved:", profile);
+        setUserProfile(profile);
+        return profile;
+      }
+    } catch (error) {
+      console.error("Error getting user profile:", error);
+      setUserProfile(null);
+    }
+    return null;
+  };
 
   // Check if user is verified
   const checkVerificationStatus = async (userAddress: string) => {
@@ -57,6 +100,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         
         if (registered) {
           setIsVerified(true);
+          // Also get the user profile when verified
+          await getUserProfile(userAddress);
           return;
         }
         
@@ -152,8 +197,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     account,
     isVerified,
     isLoading,
+    userProfile,
     connectWallet,
     checkVerificationStatus,
+    getUserProfile,
     disconnect,
   };
 
