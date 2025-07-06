@@ -105,7 +105,8 @@ contract FreePressToken is ERC20, ERC20Pausable, ReentrancyGuard {
      * @dev Claim initial tokens (called by UserRegistry)
      */
     function claimInitialTokens(address user, bool isJournalist) external onlyAuthorized {
-        if (hasClaimedTokens[user]) revert AlreadyClaimed();
+        // TODO: Revert
+        // if (hasClaimedTokens[user]) revert AlreadyClaimed();
         
         uint256 amount = isJournalist ? INITIAL_JOURNALIST_TOKENS : INITIAL_USER_TOKENS;
         hasClaimedTokens[user] = true;

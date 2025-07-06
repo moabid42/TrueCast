@@ -153,7 +153,8 @@ contract AccessManager {
      * @dev Internal function to grant a role
      */
     function _grantRole(address account, bytes32 role) internal {
-        if (_roles[account][role]) revert AlreadyHasRole();
+        // TODO: Revert
+        // if (_roles[account][role]) revert AlreadyHasRole();
         
         _roles[account][role] = true;
         emit RoleGranted(account, role);

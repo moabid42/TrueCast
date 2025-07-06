@@ -87,7 +87,8 @@ contract UserRegistry {
         string calldata _nationality,
         string calldata _dateOfBirth
     ) external onlySelfVerification {   
-        if (isRegistered[userAddress]) revert AlreadyRegistered();
+        // TODO: Revert
+        //if (isRegistered[userAddress]) revert AlreadyRegistered();
 
         isRegistered[userAddress] = true;
         isJournalist[userAddress] = false;
@@ -106,22 +107,6 @@ contract UserRegistry {
         freePressToken.claimInitialTokens(userAddress, false);
 
         emit UserRegistered(userAddress, block.timestamp, _name, _nationality, _dateOfBirth);
-    }
-
-    function completeUserData(
-        address userAddress,
-        string calldata _name,
-        string calldata _nationality,
-        string calldata _dateOfBirth
-    ) external onlySelfVerification {
-        if (!isRegistered[userAddress]) revert NotRegistered();
-        if (registeredAt[userAddress] != 0) revert AlreadyRegistered(); // Prevents re-calling
-
-        registeredAt[userAddress] = block.timestamp;
-        reputation[userAddress] = 100;
-        name[userAddress] = _name;
-        nationality[userAddress] = _nationality;
-        dateOfBirth[userAddress] = _dateOfBirth;
     }
 
 
