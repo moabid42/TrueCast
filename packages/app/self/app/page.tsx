@@ -1,167 +1,200 @@
-"use client";
-
-import React, { useState, useEffect, useMemo } from "react";
-import { useRouter } from "next/navigation";
-import { countries, getUniversalLink } from "@selfxyz/core";
-import {
-  SelfQRcodeWrapper,
-  SelfAppBuilder,
-  type SelfApp,
-} from "@selfxyz/qrcode";
-import { v4 } from "uuid";
-import { ethers } from "ethers";
-
+import React from 'react';
+import Link from 'next/link';
 
 export default function Home() {
-  const router = useRouter();
-  const [linkCopied, setLinkCopied] = useState(false);
-  const [showToast, setShowToast] = useState(false);
-  const [toastMessage, setToastMessage] = useState("");
-  const [selfApp, setSelfApp] = useState<SelfApp | null>(null);
-  const [universalLink, setUniversalLink] = useState("");
-  const [userId, setUserId] = useState("0xC5B0313400F9328A770C95787772FC0910C6da1c");
-  // Use useMemo to cache the array to avoid creating a new array on each render
-  const excludedCountries = useMemo(() => [countries.NORTH_KOREA], []);
-
-  // Use useEffect to ensure code only executes on the client side
-  useEffect(() => {
-    try {
-      const app = new SelfAppBuilder({
-        version: 2,
-        appName: process.env.NEXT_PUBLIC_SELF_APP_NAME || "Self Workshop",
-        scope: process.env.NEXT_PUBLIC_SELF_SCOPE || "self-workshop",
-        endpoint: `${process.env.NEXT_PUBLIC_SELF_ENDPOINT}`,
-        logoBase64:
-          "https://i.postimg.cc/mrmVf9hm/self.png", // url of a png image, base64 is accepted but not recommended
-        userId: userId,
-        endpointType: "staging_celo",
-        userIdType: "hex", // use 'hex' for ethereum address or 'uuid' for uuidv4
-        userDefinedData: "Hello Truth Seeker 👋", // optional, can be used to pass any user defined data
-        disclosures: {
-
-        // // what you want to verify from users' identity
-          minimumAge: 18,
-          // ofac: false,
-          // excludedCountries: [countries.BELGIUM],
-
-        // //what you want users to reveal
-          name: true,
-          // issuing_state: true,
-          nationality: true,
-          date_of_birth: true,
-          // passport_number: false,
-          gender: true,
-          // expiry_date: false,
-        }
-      }).build();
-
-      setSelfApp(app);
-      setUniversalLink(getUniversalLink(app));
-    } catch (error) {
-      console.error("Failed to initialize Self app:", error);
-    }
-  }, []);
-
-  const displayToast = (message: string) => {
-    setToastMessage(message);
-    setShowToast(true);
-    setTimeout(() => setShowToast(false), 3000);
-  };
-
-  const copyToClipboard = () => {
-    if (!universalLink) return;
-
-    navigator.clipboard
-      .writeText(universalLink)
-      .then(() => {
-        setLinkCopied(true);
-        displayToast("Universal link copied to clipboard!");
-        setTimeout(() => setLinkCopied(false), 2000);
-      })
-      .catch((err) => {
-        console.error("Failed to copy text: ", err);
-        displayToast("Failed to copy link");
-      });
-  };
-
-  const openSelfApp = () => {
-    if (!universalLink) return;
-
-    window.open(universalLink, "_blank");
-    displayToast("Opening Self App...");
-  };
-
-  const handleSuccessfulVerification = () => {
-    displayToast("Verification successful! Redirecting...");
-    setTimeout(() => {
-      router.push("/verified");
-    }, 1500);
-  };
-
   return (
-    <div className="min-h-screen w-full bg-gray-50 flex flex-col items-center justify-center p-4 sm:p-6 md:p-8">
-      {/* Header */}
-      <div className="mb-6 md:mb-8 text-center">
-        <h1 className="text-2xl sm:text-3xl font-bold mb-2 text-gray-800">
-          {process.env.NEXT_PUBLIC_SELF_APP_NAME || "Self Workshop"}
+    <div className="max-w-6xl mx-auto">
+      {/* Hero Section */}
+      <div className="text-center mb-16">
+        <div className="mb-8">
+          <div className="w-24 h-24 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full mx-auto mb-6 flex items-center justify-center">
+            <span className="text-white text-3xl font-bold">TC</span>
+          </div>
+        </div>
+        <h1 className="text-5xl sm:text-6xl font-bold mb-6 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          TrueCase
         </h1>
-        <p className="text-sm sm:text-base text-gray-600 px-2">
-          Scan QR code with Self Protocol App to verify your identity
+        <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
+          A decentralized news platform that combines identity verification with blockchain technology 
+          to ensure trustworthy, fact-checked journalism and combat misinformation.
         </p>
+        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <Link
+            href="/verify"
+            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-4 rounded-lg text-lg font-semibold transition-all duration-200 transform hover:scale-105 inline-flex items-center justify-center"
+          >
+            Get Started
+            <svg className="ml-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+            </svg>
+          </Link>
+          <a
+            href="#how-it-works"
+            className="border-2 border-gray-300 hover:border-blue-600 text-gray-700 hover:text-blue-600 px-8 py-4 rounded-lg text-lg font-semibold transition-all duration-200 inline-flex items-center justify-center"
+          >
+            Learn More
+          </a>
+        </div>
       </div>
 
-      {/* Main content */}
-      <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 w-full max-w-xs sm:max-w-sm md:max-w-md mx-auto">
-        <div className="flex justify-center mb-4 sm:mb-6">
-          {selfApp ? (
-            <SelfQRcodeWrapper
-              selfApp={selfApp}
-              onSuccess={handleSuccessfulVerification}
-              onError={() => {
-                displayToast("Error: Failed to verify identity");
-              }}
-            />
-          ) : (
-            <div className="w-[256px] h-[256px] bg-gray-200 animate-pulse flex items-center justify-center">
-              <p className="text-gray-500 text-sm">Loading QR Code...</p>
+      {/* Features Section */}
+      <div className="grid md:grid-cols-3 gap-8 mb-16">
+        <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100">
+          <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
+            <svg className="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+          </div>
+          <h3 className="text-xl font-semibold mb-3 text-gray-800">Identity Verification</h3>
+          <p className="text-gray-600">
+            Secure identity verification through Self Protocol ensures only real users can contribute 
+            to the platform, preventing bot manipulation.
+          </p>
+        </div>
+
+        <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100">
+          <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
+            <svg className="h-6 w-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          </div>
+          <h3 className="text-xl font-semibold mb-3 text-gray-800">Decentralized Storage</h3>
+          <p className="text-gray-600">
+            Articles are stored on Walrus Protocol, ensuring content integrity and permanent 
+            availability without centralized control.
+          </p>
+        </div>
+
+        <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100">
+          <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4">
+            <svg className="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h3 className="text-xl font-semibold mb-3 text-gray-800">Fact Checking</h3>
+          <p className="text-gray-600">
+            Community-driven fact-checking with reputation systems ensures high-quality, 
+            verified content reaches readers.
+          </p>
+        </div>
+      </div>
+
+      {/* How It Works Section */}
+      <div id="how-it-works" className="mb-16">
+        <h2 className="text-3xl font-bold text-center mb-12 text-gray-800">How It Works</h2>
+        <div className="grid md:grid-cols-4 gap-8">
+          <div className="text-center">
+            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-2xl font-bold text-blue-600">1</span>
             </div>
-          )}
-        </div>
+            <h3 className="text-lg font-semibold mb-2 text-gray-800">Connect Wallet</h3>
+            <p className="text-gray-600 text-sm">
+              Connect your Web3 wallet to get started with the platform
+            </p>
+          </div>
 
-        <div className="flex flex-col sm:flex-row gap-2 sm:space-x-2 mb-4 sm:mb-6">
-          <button
-            type="button"
-            onClick={copyToClipboard}
-            disabled={!universalLink}
-            className="flex-1 bg-gray-800 hover:bg-gray-700 transition-colors text-white p-2 rounded-md text-sm sm:text-base disabled:bg-gray-400 disabled:cursor-not-allowed"
-          >
-            {linkCopied ? "Copied!" : "Copy Universal Link"}
-          </button>
+          <div className="text-center">
+            <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-2xl font-bold text-purple-600">2</span>
+            </div>
+            <h3 className="text-lg font-semibold mb-2 text-gray-800">Verify Identity</h3>
+            <p className="text-gray-600 text-sm">
+              Complete identity verification through Self Protocol
+            </p>
+          </div>
 
-          <button
-            type="button"
-            onClick={openSelfApp}
-            disabled={!universalLink}
-            className="flex-1 bg-blue-600 hover:bg-blue-500 transition-colors text-white p-2 rounded-md text-sm sm:text-base mt-2 sm:mt-0 disabled:bg-blue-300 disabled:cursor-not-allowed"
-          >
-            Open Self App
-          </button>
+          <div className="text-center">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-2xl font-bold text-green-600">3</span>
+            </div>
+            <h3 className="text-lg font-semibold mb-2 text-gray-800">Access Content</h3>
+            <p className="text-gray-600 text-sm">
+              Browse and interact with verified articles and news
+            </p>
+          </div>
 
-
-        </div>
-        <div className="flex flex-col items-center gap-2 mt-2">
-          <span className="text-gray-500 text-xs uppercase tracking-wide">User Address</span>
-          <div className="bg-gray-100 rounded-md px-3 py-2 w-full text-center break-all text-sm font-mono text-gray-800 border border-gray-200">
-            {userId ? userId : <span className="text-gray-400">Not connected</span>}
+          <div className="text-center">
+            <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-2xl font-bold text-orange-600">4</span>
+            </div>
+            <h3 className="text-lg font-semibold mb-2 text-gray-800">Contribute</h3>
+            <p className="text-gray-600 text-sm">
+              Submit articles and participate in fact-checking
+            </p>
           </div>
         </div>
+      </div>
 
-        {/* Toast notification */}
-        {showToast && (
-          <div className="fixed bottom-4 right-4 bg-gray-800 text-white py-2 px-4 rounded shadow-lg animate-fade-in text-sm">
-            {toastMessage}
+      {/* Benefits Section */}
+      <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-100 mb-16">
+        <h2 className="text-3xl font-bold text-center mb-8 text-gray-800">Why Choose TrueCase?</h2>
+        <div className="grid md:grid-cols-2 gap-8">
+          <div className="space-y-4">
+            <div className="flex items-start space-x-3">
+              <svg className="h-6 w-6 text-blue-600 mt-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+              <div>
+                <h3 className="font-semibold text-gray-800">Privacy First</h3>
+                <p className="text-gray-600 text-sm">
+                  Your identity is verified without compromising your personal data
+                </p>
+              </div>
+            </div>
+            <div className="flex items-start space-x-3">
+              <svg className="h-6 w-6 text-green-600 mt-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div>
+                <h3 className="font-semibold text-gray-800">Decentralized</h3>
+                <p className="text-gray-600 text-sm">
+                  No single entity controls the platform or your content
+                </p>
+              </div>
+            </div>
           </div>
-        )}
+          <div className="space-y-4">
+            <div className="flex items-start space-x-3">
+              <svg className="h-6 w-6 text-purple-600 mt-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+              </svg>
+              <div>
+                <h3 className="font-semibold text-gray-800">Community Driven</h3>
+                <p className="text-gray-600 text-sm">
+                  Fact-checking and content moderation by verified users
+                </p>
+              </div>
+            </div>
+            <div className="flex items-start space-x-3">
+              <svg className="h-6 w-6 text-orange-600 mt-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+              <div>
+                <h3 className="font-semibold text-gray-800">Transparent</h3>
+                <p className="text-gray-600 text-sm">
+                  All actions and content are publicly verifiable on the blockchain
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* CTA Section */}
+      <div className="text-center bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 text-white">
+        <h2 className="text-3xl font-bold mb-4">Ready to Join the Future of News?</h2>
+        <p className="text-xl mb-6 opacity-90">
+          Connect your wallet and start your journey towards trustworthy, decentralized journalism
+        </p>
+        <Link
+          href="/verify"
+          className="bg-white text-blue-600 hover:bg-gray-100 px-8 py-4 rounded-lg text-lg font-semibold transition-all duration-200 transform hover:scale-105 inline-flex items-center"
+        >
+          Get Started Now
+          <svg className="ml-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+          </svg>
+        </Link>
       </div>
     </div>
   );

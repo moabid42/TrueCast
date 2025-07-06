@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
+import Navigation from "@/components/Navigation";
+import { AuthProvider } from "@/contexts/AuthContext";
 
 const geistSans = localFont({
 	src: "./fonts/GeistVF.woff",
@@ -14,8 +16,8 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-	title: "Self Workshop",
-	description: "Self Workshop",
+	title: "TrueCase - Trusted News Platform",
+	description: "A decentralized news platform with identity verification and fact-checking",
 };
 
 export default function RootLayout({
@@ -28,7 +30,14 @@ export default function RootLayout({
 			<body
 				className={`${geistSans.variable} ${geistMono.variable} antialiased`}
 			>
-				{children}
+				<AuthProvider>
+					<div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+						<Navigation />
+						<main className="container mx-auto px-4 py-8">
+							{children}
+						</main>
+					</div>
+				</AuthProvider>
 			</body>
 		</html>
 	);
