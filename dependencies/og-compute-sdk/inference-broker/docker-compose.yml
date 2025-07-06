@@ -1,0 +1,116 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: 0g-serving-provider-broker-db
+    environment:
+      MYSQL_ROOT_PASSWORD: 123456
+      MYSQL_USER: provider
+      MYSQL_PASSWORD: provider
+    ports:
+      - "33060:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost"]
+      interval: 10s
+      retries: 5
+    networks:
+      - localhost
+
+  0g-serving-provider-broker:
+    image: ghcr.io/0glabs/0g-serving-broker:0.1.1-rc
+    container_name: 0g-serving-provider-broker
+    environment:
+      - PORT=3080
+      - CONFIG_FILE=/etc/config.yaml
+    volumes:
+      - ./config.local.yaml:/etc/config.yaml
+    command: 0g-inference-server
+    networks:
+      - localhost
+    depends_on:
+      mysql:
+        condition: service_healthy
+      zk-prover:
+        condition: service_healthy
+
+  0g-serving-provider-event:
+    image: ghcr.io/0glabs/0g-serving-broker:0.1.1-rc
+    container_name: 0g-serving-provider-event
+    environment:
+      - CONFIG_FILE=/etc/config.yaml
+    volumes:
+      - ./config.local.yaml:/etc/config.yaml
+    command: 0g-inference-event
+    # ports:
+    #   # - "8080:3080"      
+    networks:
+      - localhost
+    depends_on:
+      0g-serving-provider-broker:
+        condition: service_started
+      zk-settlement:
+        condition: service_healthy
+
+  nginx:
+    image: nginx:1.27.0
+    container_name: nginx-server
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    networks:
+      - localhost
+    depends_on:
+      0g-serving-provider-broker:
+        condition: service_started
+
+  zk-prover:
+    image: ghcr.io/0glabs/zk:0.1.0
+    container_name: zk-prover
+    environment:
+      JS_PROVER_PORT: 3001
+    ports:
+      - "3001:3001"
+    healthcheck:
+      test:
+        ["CMD", "curl", "-f", "-X", "GET", "http://zk-prover:3001/sign-keypair"]
+      interval: 30s
+      timeout: 10s
+      retries: 20
+      start_period: 30s
+    networks:
+      - localhost
+
+  zk-settlement:
+    image: ghcr.io/0glabs/zk:0.1.0
+    container_name: zk-settlement
+    environment:
+      JS_PROVER_PORT: 3002
+    ports:
+      - "3002:3002"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "curl",
+          "-f",
+          "-X",
+          "GET",
+          "http://zk-settlement:3002/sign-keypair",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 20
+      start_period: 30s
+    networks:
+      - localhost
+
+volumes:
+  mysql-data:
+
+networks:
+  localhost:
+    name: localhost
+    external: false

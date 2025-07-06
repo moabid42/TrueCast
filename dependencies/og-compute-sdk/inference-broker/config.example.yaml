@@ -1,0 +1,20 @@
+interval:
+  autoSettleBufferTime: 60
+  forceSettlementProcessor: 600
+  settlementProcessor: 300
+networks:
+  ethereum0g:
+    url: "https://evmrpc-testnet.0g.ai"
+    chainID: 16600
+    privateKeys:
+      - aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+    transactionLimit: 1000000
+    gasEstimationBuffer: 10000
+service:
+  servingUrl: <Serving URL>
+  targetUrl: <Target URL>
+  inputPrice: 1
+  outputPrice: 1
+  type: "chatbot"
+  model: <Model>
+  verifiability: "TeeML"
