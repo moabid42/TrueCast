@@ -1,49 +1,54 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
+contract FactChecker {
+    struct Result {
+      bool    fulfilled;
+      string  verdict;
+      string  explanation;
+    }
 
-contract FactCheckTest {
-    /// @notice Emitted when a fact‐check is requested
     event FactCheckRequested(
-        uint256 indexed requestId,
-        address indexed requester,
-        string claim
+      uint256 indexed requestId,
+      address indexed requester,
+      string uri
     );
-    /// @notice Emitted when a fact‐check is fulfilled
     event FactCheckFulfilled(
-        uint256 indexed requestId,
-        string verdict,
-        string explanation
+      uint256 indexed requestId,
+      string   verdict,
+      string   explanation
     );
 
     uint256 public nextRequestId = 1;
+    mapping(uint256 => Result) public results;
 
-    /// @notice Request a fact‐check on your given claim
-    function requestFactCheck(string memory claim) public returns (uint256) {
-        uint256 id = nextRequestId++;
-        emit FactCheckRequested(id, msg.sender, claim);
-        return id;
+    function requestFactCheck(string calldata uri) external returns (uint256) {
+      uint256 id = nextRequestId++;
+      emit FactCheckRequested(id, msg.sender, uri);
+      return id;
     }
 
-    /// @notice Fulfill a previously requested fact‐check
+    // only your relayer’s address should be allowed in production
     function fulfillFactCheck(
-        uint256 requestId,
-        string memory verdict,
-        string memory explanation
-    ) public {
-        emit FactCheckFulfilled(requestId, verdict, explanation);
+      uint256 requestId,
+      string calldata verdict,
+      string calldata explanation
+    ) external {
+      results[requestId] = Result({
+        fulfilled:   true,
+        verdict:     verdict,
+        explanation: explanation
+      });
+      emit FactCheckFulfilled(requestId, verdict, explanation);
     }
 
-    /// @notice Convenience method to do both in one tx with dummy data
-    function testFactCheck() external {
-        // 1) Emit the request, capturing the new requestId
-        uint256 id = requestFactCheck("The Eiffel Tower is in Berlin");
-
-        // 2) Immediately emit a dummy fulfillment using the same id
-        fulfillFactCheck(
-            id,
-            "REFUTED",
-            "Dummy: Eiffel Tower is in Paris, not Berlin."
-        );
+    /// @notice read back the fact-check
+    function getResult(uint256 reque\stId)
+      external
+      view
+      returns (bool fulfilled, string memory verdict, string memory explanation)
+    {
+      Result storage r = results[requestId];
+      return (r.fulfilled, r.verdict, r.explanation);
     }
 }
