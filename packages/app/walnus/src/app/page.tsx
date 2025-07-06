@@ -328,7 +328,7 @@ const ArticleManagerFrontend = () => {
       if (window.ethereum) {
         try {
           const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-          setWrongNetwork(chainId !== '0xaa36a7'); // 0xaa36a7 is 11155111 in hex (Sepolia)
+          setWrongNetwork(chainId !== '44787');
         } catch (e) {
           setWrongNetwork(true);
         }

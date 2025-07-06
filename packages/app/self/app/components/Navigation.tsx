@@ -1,11 +1,89 @@
 "use client";
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
+import { ethers } from 'ethers';
 
 export default function Navigation() {
   const { account, isVerified, connectWallet, disconnect } = useAuth();
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isJournalist, setIsJournalist] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Check admin and journalist status
+  useEffect(() => {
+    const checkStatus = async () => {
+      if (!account) {
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        if (typeof window !== 'undefined' && window.ethereum) {
+          const provider = new ethers.BrowserProvider(window.ethereum);
+          const contract = new ethers.Contract(
+            process.env.NEXT_PUBLIC_JOURNALIST_APPLICATION_CONTRACT!,
+            [
+              {
+                "inputs": [
+                  {
+                    "internalType": "address",
+                    "name": "user",
+                    "type": "address"
+                  }
+                ],
+                "name": "isAdmin",
+                "outputs": [
+                  {
+                    "internalType": "bool",
+                    "name": "",
+                    "type": "bool"
+                  }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+              },
+              {
+                "inputs": [
+                  {
+                    "internalType": "address",
+                    "name": "user",
+                    "type": "address"
+                  }
+                ],
+                "name": "isJournalist",
+                "outputs": [
+                  {
+                    "internalType": "bool",
+                    "name": "",
+                    "type": "bool"
+                  }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+              }
+            ],
+            provider
+          );
+
+          const [adminStatus, journalistStatus] = await Promise.all([
+            contract.isAdmin(account),
+            contract.isJournalist(account)
+          ]);
+
+          setIsAdmin(adminStatus);
+          setIsJournalist(journalistStatus);
+        }
+      } catch (error) {
+        console.error('Error checking status:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkStatus();
+  }, [account]);
 
   return (
     <nav className="bg-white shadow-lg border-b border-gray-100">
@@ -35,18 +113,36 @@ export default function Navigation() {
             >
               Feed
             </Link>
-            <Link 
-              href="/verify" 
-              className="text-gray-700 hover:text-blue-600 transition-colors duration-200"
-            >
-              Verify Identity
-            </Link>
-            {isVerified && (
+            {!isVerified && (
+              <Link 
+                href="/verify" 
+                className="text-gray-700 hover:text-blue-600 transition-colors duration-200"
+              >
+                Verify Identity
+              </Link>
+            )}
+            {isJournalist && !isLoading && (
               <Link 
                 href="/articles" 
                 className="text-gray-700 hover:text-blue-600 transition-colors duration-200"
               >
                 Articles
+              </Link>
+            )}
+            {!isJournalist && !isAdmin && !isLoading && (
+              <Link 
+                href="/journalist-application" 
+                className="text-gray-700 hover:text-blue-600 transition-colors duration-200"
+              >
+                Become Journalist
+              </Link>
+            )}
+            {isAdmin && !isLoading && (
+              <Link 
+                href="/admin" 
+                className="text-gray-700 hover:text-blue-600 transition-colors duration-200"
+              >
+                Admin
               </Link>
             )}
           </div>

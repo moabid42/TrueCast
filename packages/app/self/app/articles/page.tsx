@@ -25,12 +25,14 @@ declare global {
 interface Article {
   id: number;
   author: string;
+  title: string; // Article title
   walrusHash: string;
   timestamp: Date;
   status: number;
   stake: any;
   version: number;
   mediaHashes: string[];
+  mediaContentTypes?: { [hash: string]: string }; // Content types for media hashes
   metadata: string;
 }
 
@@ -42,15 +44,19 @@ export default function ArticlesPage() {
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('browse');
   const [formData, setFormData] = useState<{
+    title: string;
     walrusHash: string;
     metadata: string;
     articleId: string;
     mediaHash: string;
+    mediaContentType: string;
   }>({
+    title: '',
     walrusHash: '',
     metadata: '',
     articleId: '',
-    mediaHash: ''
+    mediaHash: '',
+    mediaContentType: ''
   });
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [dragActive, setDragActive] = useState(false);
@@ -111,9 +117,10 @@ export default function ArticlesPage() {
       for (let i = 1; i <= total; i++) {
         try {
           const article = await contract.getArticle(i);
-          articlesData.push({
+          const articleData: Article = {
             id: Number(article.id),
             author: article.author,
+            title: article.title || `Article #${article.id}`,
             walrusHash: article.walrusHash,
             timestamp: new Date(Number(article.timestamp) * 1000),
             status: article.status,
@@ -121,7 +128,23 @@ export default function ArticlesPage() {
             version: Number(article.version),
             mediaHashes: article.mediaHashes,
             metadata: article.metadata
-          });
+          };
+
+          // Fetch content types for media hashes
+          if (articleData.mediaHashes.length > 0) {
+            articleData.mediaContentTypes = {};
+            for (const mediaHash of articleData.mediaHashes) {
+              try {
+                const contentType = await contract.getMediaContentType(mediaHash);
+                articleData.mediaContentTypes[mediaHash] = contentType;
+              } catch (error) {
+                console.error(`Failed to get content type for ${mediaHash}:`, error);
+                articleData.mediaContentTypes[mediaHash] = 'application/octet-stream';
+              }
+            }
+          }
+
+          articlesData.push(articleData);
         } catch (error) {
           console.error(`Error loading article ${i}:`, error);
         }
@@ -137,12 +160,13 @@ export default function ArticlesPage() {
 
   // Create new article
   const createArticle = async () => {
-    if (!contract || !formData.walrusHash || !formData.metadata) return;
+    if (!contract || !formData.title || !formData.walrusHash || !formData.metadata) return;
 
     setLoading(true);
     try {
       const minimumStake = await contract.minimumStake();
       const tx = await contract.createArticle(
+        formData.title,
         formData.walrusHash,
         formData.metadata,
         { value: minimumStake }
@@ -150,7 +174,7 @@ export default function ArticlesPage() {
 
       await tx.wait();
       alert('Article created successfully!');
-      setFormData({ walrusHash: '', metadata: '', articleId: '', mediaHash: '' });
+      setFormData({ title: '', walrusHash: '', metadata: '', articleId: '', mediaHash: '', mediaContentType: '' });
       loadArticles();
     } catch (error: any) {
       console.error('Error creating article:', error);
@@ -162,12 +186,13 @@ export default function ArticlesPage() {
 
   // Update article
   const updateArticle = async () => {
-    if (!contract || !formData.articleId || !formData.walrusHash || !formData.metadata) return;
+    if (!contract || !formData.articleId || !formData.title || !formData.walrusHash || !formData.metadata) return;
 
     setLoading(true);
     try {
       const tx = await contract.updateArticle(
         formData.articleId,
+        formData.title,
         formData.walrusHash,
         formData.metadata
       );
@@ -189,9 +214,12 @@ export default function ArticlesPage() {
 
     setLoading(true);
     try {
-      const tx = await contract.attachMedia(formData.articleId, formData.mediaHash);
+      // Get the content type from the uploaded file
+      const contentType = formData.mediaContentType || 'application/octet-stream';
+      const tx = await contract.attachMedia(formData.articleId, formData.mediaHash, contentType);
       await tx.wait();
       alert('Media attached successfully!');
+      setFormData(prev => ({ ...prev, mediaHash: '', mediaContentType: '' }));
       loadArticles();
     } catch (error: any) {
       console.error('Error attaching media:', error);
@@ -212,9 +240,10 @@ export default function ArticlesPage() {
 
       for (let id of articleIds) {
         const article = await contract.getArticle(id);
-        myArticles.push({
+        const articleData: Article = {
           id: Number(article.id),
           author: article.author,
+          title: article.title || `Article #${article.id}`,
           walrusHash: article.walrusHash,
           timestamp: new Date(Number(article.timestamp) * 1000),
           status: article.status,
@@ -222,7 +251,23 @@ export default function ArticlesPage() {
           version: Number(article.version),
           mediaHashes: article.mediaHashes,
           metadata: article.metadata
-        });
+        };
+
+        // Fetch content types for media hashes
+        if (articleData.mediaHashes.length > 0) {
+          articleData.mediaContentTypes = {};
+          for (const mediaHash of articleData.mediaHashes) {
+            try {
+              const contentType = await contract.getMediaContentType(mediaHash);
+              articleData.mediaContentTypes[mediaHash] = contentType;
+            } catch (error) {
+              console.error(`Failed to get content type for ${mediaHash}:`, error);
+              articleData.mediaContentTypes[mediaHash] = 'application/octet-stream';
+            }
+          }
+        }
+
+        myArticles.push(articleData);
       }
 
       setArticles(myArticles);
@@ -279,12 +324,25 @@ export default function ArticlesPage() {
       } else {
         throw new Error("No blobId in response");
       }
-      setFormData(prev => ({
-        ...prev,
-        walrusHash: blobId,
-        metadata: JSON.stringify({ filename: file.name, type: file.type, size: file.size }),
-      }));
-      alert('File uploaded to Walrus! Hash auto-filled.');
+      
+      // Determine which field to update based on active tab
+      if (activeTab === 'media') {
+        // For media upload, populate mediaHash field and content type
+        setFormData(prev => ({
+          ...prev,
+          mediaHash: blobId,
+          mediaContentType: file.type,
+        }));
+        alert('Media file uploaded to Walrus! Media hash and content type auto-filled.');
+      } else {
+        // For article creation, populate walrusHash and metadata
+        setFormData(prev => ({
+          ...prev,
+          walrusHash: blobId,
+          metadata: JSON.stringify({ filename: file.name, type: file.type, size: file.size }),
+        }));
+        alert('File uploaded to Walrus! Hash auto-filled.');
+      }
     } catch (err: any) {
       alert('Error uploading file: ' + (err?.message || err));
     } finally {
@@ -400,6 +458,37 @@ export default function ArticlesPage() {
         <div className="mb-4">
           <p className="text-sm text-gray-500 mb-1">Metadata:</p>
           <p className="text-sm bg-gray-50 p-2 rounded">{article.metadata}</p>
+        </div>
+      )}
+
+      {/* Media Hashes Section */}
+      {article.mediaHashes.length > 0 && (
+        <div className="mb-4">
+          <p className="text-sm text-gray-500 mb-2">Media Attachments ({article.mediaHashes.length}):</p>
+          <div className="space-y-2">
+            {article.mediaHashes.map((hash, index) => (
+              <div key={hash} className="flex items-center gap-2 p-2 bg-gray-50 rounded">
+                <span className="text-xs text-gray-500 font-mono">#{index + 1}</span>
+                <div className="flex-1">
+                  <p className="text-xs font-mono break-all">{hash}</p>
+                  {article.mediaContentTypes && article.mediaContentTypes[hash] && (
+                    <p className="text-xs text-gray-400">{article.mediaContentTypes[hash]}</p>
+                  )}
+                </div>
+                <a 
+                  href={`${AGGREGATOR}/v1/blobs/${hash}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-1 text-blue-600 hover:text-blue-800"
+                  title="View media file"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </a>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -598,6 +687,17 @@ export default function ArticlesPage() {
                   </div>
                 )}
                 <div>
+                  <label className="block text-gray-700 font-medium mb-2">Title</label>
+                  <input
+                    type="text"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                    value={formData.title}
+                    onChange={e => setFormData({ ...formData, title: e.target.value })}
+                    placeholder="Enter article title"
+                    required
+                  />
+                </div>
+                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Upload File (drag & drop or click)
                   </label>
@@ -693,6 +793,18 @@ export default function ArticlesPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
+                    New Title
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.title}
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Enter new article title"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
                     New Walrus Hash
                   </label>
                   <input
@@ -759,22 +871,51 @@ export default function ArticlesPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Media Hash
+                    Upload Media File (drag & drop or click)
+                  </label>
+                  <div
+                    className={`flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-8 transition-colors duration-200 cursor-pointer ${dragActive ? 'border-blue-400 bg-blue-50' : 'border-gray-300 bg-gray-50 hover:border-blue-500'}`}
+                    onDragEnter={handleDrag}
+                    onDragOver={handleDrag}
+                    onDragLeave={handleDrag}
+                    onDrop={handleDrop}
+                    onClick={handleButtonClick}
+                    style={{ minHeight: '120px' }}
+                  >
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleFileInputChange}
+                      className="hidden"
+                    />
+                    {loading ? (
+                      <span className="text-blue-600">Uploading...</span>
+                    ) : (
+                      <>
+                        <span className="text-gray-600 mb-2">Drag & drop a media file here, or <span className="underline text-blue-600">click to select</span></span>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Media Hash (auto-filled after upload)
                   </label>
                   <input
                     type="text"
                     value={formData.mediaHash}
                     onChange={(e) => setFormData({ ...formData, mediaHash: e.target.value })}
                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Enter Walrus media hash"
+                    placeholder="Media hash will be auto-filled after upload"
+                    readOnly
                   />
                 </div>
                 <button
                   onClick={attachMedia}
-                  disabled={loading || wrongNetwork || !isVerified}
-                  title={!isVerified ? 'Identity verification required' : wrongNetwork ? 'Please switch to the Alfajores testnet to enable this action.' : ''}
+                  disabled={loading || wrongNetwork || !isVerified || !formData.articleId || !formData.mediaHash}
+                  title={!isVerified ? 'Identity verification required' : wrongNetwork ? 'Please switch to the Alfajores testnet to enable this action.' : !formData.articleId || !formData.mediaHash ? 'Please provide article ID and upload a media file' : ''}
                   className={`px-6 py-3 rounded-lg font-medium transition-colors ${
-                    isVerified 
+                    isVerified && formData.articleId && formData.mediaHash
                       ? 'bg-green-500 hover:bg-green-600 text-white disabled:opacity-50' 
                       : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   }`}

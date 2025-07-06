@@ -9,6 +9,7 @@ contract ArticleManager {
     struct Article {
         uint256 id;
         address author;
+        string title; // Article title
         string walrusHash;
         uint256 timestamp;
         ArticleStatus status;
@@ -23,6 +24,7 @@ contract ArticleManager {
     mapping(address => uint256[]) public articlesByAuthor;
     mapping(uint256 => uint256[]) public articlesByDate; // timestamp => article IDs
     mapping(uint256 => mapping(uint256 => string)) public articleVersions; // articleId => version => walrusHash
+    mapping(string => string) public mediaContentTypes; // mediaHash => content type
     
     uint256 public nextArticleId = 1;
     uint256 public minimumStake = 0.01 ether;
@@ -66,10 +68,12 @@ contract ArticleManager {
 
     /**
      * @dev Creates a new article with minimum stake requirement
+     * @param title The article title
      * @param walrusHash The Walrus storage hash for the article content
      * @param metadata JSON string containing article metadata
      */
     function createArticle(
+        string memory title,
         string memory walrusHash,
         string memory metadata
     ) external payable validStake returns (uint256) {
@@ -78,6 +82,7 @@ contract ArticleManager {
         Article storage newArticle = articles[articleId];
         newArticle.id = articleId;
         newArticle.author = msg.sender;
+        newArticle.title = title;
         newArticle.walrusHash = walrusHash;
         newArticle.timestamp = block.timestamp;
         newArticle.status = ArticleStatus.DRAFT;
@@ -102,11 +107,13 @@ contract ArticleManager {
     /**
      * @dev Updates an existing article with a new version
      * @param articleId The ID of the article to update
+     * @param newTitle The new article title
      * @param newWalrusHash The new Walrus storage hash
      * @param newMetadata Updated metadata
      */
     function updateArticle(
         uint256 articleId,
+        string memory newTitle,
         string memory newWalrusHash,
         string memory newMetadata
     ) external articleMustExist(articleId) onlyAuthor(articleId) {
@@ -115,6 +122,7 @@ contract ArticleManager {
                 "Cannot update published or flagged articles");
 
         article.version++;
+        article.title = newTitle;
         article.walrusHash = newWalrusHash;
         article.metadata = newMetadata;
 
@@ -147,12 +155,15 @@ contract ArticleManager {
      * @dev Adds media attachment to an article
      * @param articleId The ID of the article
      * @param mediaHash Walrus hash of the media file
+     * @param contentType MIME type of the media file
      */
     function attachMedia(
         uint256 articleId,
-        string memory mediaHash
+        string memory mediaHash,
+        string memory contentType
     ) external onlyAuthor(articleId) articleMustExist(articleId) {
         articles[articleId].mediaHashes.push(mediaHash);
+        mediaContentTypes[mediaHash] = contentType;
         emit MediaAttached(articleId, mediaHash);
     }
 
@@ -217,6 +228,15 @@ contract ArticleManager {
      */
     function getArticleMedia(uint256 articleId) external view articleMustExist(articleId) returns (string[] memory) {
         return articles[articleId].mediaHashes;
+    }
+
+    /**
+     * @dev Gets the content type for a media hash
+     * @param mediaHash The media hash
+     * @return Content type (MIME type)
+     */
+    function getMediaContentType(string memory mediaHash) external view returns (string memory) {
+        return mediaContentTypes[mediaHash];
     }
 
     /**

@@ -26,14 +26,17 @@ declare global {
 interface Article {
   id: number;
   author: string;
+  title: string; // Article title
   walrusHash: string;
   timestamp: Date;
   status: number;
   stake: any;
   version: number;
   mediaHashes: string[];
+  mediaContentTypes?: { [hash: string]: string }; // Content types for media hashes
   metadata: string;
   content?: string; // Markdown content from Walrus
+  mediaContent?: { [hash: string]: { type: string; url: string; content?: string } }; // Media content from Walrus
   votes?: number; // Vote count
   userVote?: 'up' | 'down' | null; // User's vote
   isExpanded?: boolean; // Track if article content is expanded
@@ -128,6 +131,7 @@ export default function FeedPage() {
           const articleData: Article = {
             id: Number(article.id),
             author: article.author,
+            title: article.title || `Article #${article.id}`, // Use title from contract or fallback
             walrusHash: article.walrusHash,
             timestamp: new Date(Number(article.timestamp) * 1000),
             status: article.status,
@@ -175,6 +179,37 @@ export default function FeedPage() {
             }
           } else {
             console.log(`No walrus hash for article ${i}`);
+          }
+
+          // Fetch media content types and content
+          if (articleData.mediaHashes.length > 0) {
+            console.log(`Fetching ${articleData.mediaHashes.length} media files for article ${i}`);
+            articleData.mediaContent = {};
+            articleData.mediaContentTypes = {};
+            
+            for (const mediaHash of articleData.mediaHashes) {
+              console.log(`Fetching media hash: ${mediaHash}`);
+              
+              // Get content type from contract
+              try {
+                const contentType = await currentContract.getMediaContentType(mediaHash);
+                articleData.mediaContentTypes![mediaHash] = contentType;
+                console.log(`Content type for ${mediaHash}:`, contentType);
+              } catch (error) {
+                console.error(`Failed to get content type for ${mediaHash}:`, error);
+                articleData.mediaContentTypes![mediaHash] = 'application/octet-stream';
+              }
+              
+              // Fetch media content
+              const mediaContent = await fetchMediaContent(mediaHash, articleData.mediaContentTypes![mediaHash]);
+              if (mediaContent) {
+                articleData.mediaContent[mediaHash] = mediaContent;
+                console.log(`Successfully fetched media:`, mediaContent);
+              } else {
+                console.log(`Failed to fetch media for hash: ${mediaHash}`);
+              }
+            }
+            console.log(`Final media content for article ${i}:`, articleData.mediaContent);
           }
 
           articlesData.push(articleData);
@@ -284,12 +319,180 @@ export default function FeedPage() {
     return content.substring(0, 500) + '...';
   };
 
+  // Media Carousel Component
+  const MediaCarousel = ({ mediaContent }: { mediaContent: { [hash: string]: { type: string; url: string; content?: string } } }) => {
+    const [currentIndex, setCurrentIndex] = useState(0);
+    const mediaEntries = Object.entries(mediaContent);
+    
+    const nextSlide = () => {
+      setCurrentIndex((prevIndex) => (prevIndex + 1) % mediaEntries.length);
+    };
+    
+    const prevSlide = () => {
+      setCurrentIndex((prevIndex) => (prevIndex - 1 + mediaEntries.length) % mediaEntries.length);
+    };
+    
+    const goToSlide = (index: number) => {
+      setCurrentIndex(index);
+    };
+
+    if (mediaEntries.length === 0) return null;
+
+    const [currentHash, currentMedia] = mediaEntries[currentIndex];
+
+    return (
+      <div className="relative">
+        {/* Main Media Display */}
+        <div className="border border-gray-200 rounded-lg p-4 bg-white">
+          {currentMedia.type === 'video' && (
+            <video 
+              controls 
+              className="w-full max-w-2xl rounded-lg mx-auto"
+              src={currentMedia.url}
+            >
+              Your browser does not support the video tag.
+            </video>
+          )}
+          {currentMedia.type === 'audio' && (
+            <audio 
+              controls 
+              className="w-full max-w-2xl mx-auto"
+              src={currentMedia.url}
+            >
+              Your browser does not support the audio tag.
+            </audio>
+          )}
+          {currentMedia.type === 'image' && (
+            <img 
+              src={currentMedia.url} 
+              alt="Article media" 
+              className="w-full max-w-2xl rounded-lg mx-auto"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+              }}
+            />
+          )}
+          {currentMedia.type === 'text' && (
+            <div className="bg-gray-50 p-3 rounded-lg max-w-2xl mx-auto">
+              <p className="text-sm text-gray-600 font-mono break-all">{currentMedia.content}</p>
+            </div>
+          )}
+          {(currentMedia.type === 'unknown' || !['video', 'audio', 'image', 'text'].includes(currentMedia.type)) && (
+            <div className="flex items-center justify-center p-8 bg-gray-50 rounded-lg max-w-2xl mx-auto">
+              <div className="text-center">
+                <svg className="w-12 h-12 text-gray-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <p className="text-sm text-gray-600 mb-3">File attachment</p>
+                <a 
+                  href={currentMedia.url} 
+                  download
+                  className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Download File
+                </a>
+              </div>
+            </div>
+          )}
+          
+          {/* Media Info */}
+          <div className="mt-3 text-center">
+            <p className="text-xs text-gray-500 font-mono break-all">{currentHash}</p>
+            <p className="text-xs text-gray-400 mt-1">
+              {currentIndex + 1} of {mediaEntries.length}
+            </p>
+          </div>
+        </div>
+
+        {/* Navigation Controls */}
+        {mediaEntries.length > 1 && (
+          <>
+            {/* Previous Button */}
+            <button
+              onClick={prevSlide}
+              className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-75 transition-all"
+              aria-label="Previous media"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+
+            {/* Next Button */}
+            <button
+              onClick={nextSlide}
+              className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-75 transition-all"
+              aria-label="Next media"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+
+            {/* Dots Indicator */}
+            <div className="flex justify-center mt-4 space-x-2">
+              {mediaEntries.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => goToSlide(index)}
+                  className={`w-2 h-2 rounded-full transition-all ${
+                    index === currentIndex 
+                      ? 'bg-blue-600' 
+                      : 'bg-gray-300 hover:bg-gray-400'
+                  }`}
+                  aria-label={`Go to media ${index + 1}`}
+                />
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+    );
+  };
+
+  // Fetch media content from Walrus
+  const fetchMediaContent = async (mediaHash: string, contentType: string) => {
+    try {
+      console.log(`Fetching media content for hash: ${mediaHash} with content type: ${contentType}`);
+      const url = `${AGGREGATOR}/v1/blobs/${mediaHash}`;
+      const response = await fetch(url);
+      
+      if (response.ok) {
+        console.log(`Media content type from contract:`, contentType);
+        
+        if (contentType.startsWith('video/')) {
+          return { type: 'video', url: url, content: url };
+        } else if (contentType.startsWith('audio/')) {
+          return { type: 'audio', url: url, content: url };
+        } else if (contentType.startsWith('image/')) {
+          return { type: 'image', url: url, content: url };
+        } else if (contentType.startsWith('text/')) {
+          // For text files, try to get as text
+          const content = await response.text();
+          return { type: 'text', url: url, content };
+        } else {
+          // For unknown types, return as downloadable file
+          return { type: 'unknown', url: url, content: undefined };
+        }
+      } else {
+        console.error(`Failed to fetch media content:`, response.status, response.statusText);
+        return null;
+      }
+    } catch (error) {
+      console.error(`Error fetching media content:`, error);
+      return null;
+    }
+  };
+
   const renderArticleCard = (article: Article) => (
     <div key={article.id} className="bg-white rounded-lg shadow-md p-6 mb-6 border border-gray-100">
       <div className="flex justify-between items-start mb-4">
         <div className="flex-1">
           <div className="flex items-center gap-3 mb-2">
-            <h2 className="text-xl font-semibold text-gray-800">Article #{article.id}</h2>
+            <h2 className="text-2xl font-bold text-gray-800">{article.title}</h2>
             <span className={`px-3 py-1 rounded-full text-sm font-medium ${statusColors[article.status as keyof typeof statusColors]}`}>
               {statusLabels[article.status as keyof typeof statusLabels]}
             </span>
@@ -375,6 +578,16 @@ export default function FeedPage() {
               </p>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Media Content Carousel */}
+      {article.mediaContent && Object.keys(article.mediaContent).length > 0 && (
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold mb-4 text-gray-700 border-b border-gray-200 pb-2">
+            Media Attachments ({Object.keys(article.mediaContent).length}):
+          </h3>
+          <MediaCarousel mediaContent={article.mediaContent} />
         </div>
       )}
 
